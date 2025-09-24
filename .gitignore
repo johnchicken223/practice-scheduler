@@ -1,3 +1,7 @@
 node_modules/
 build/
 .env
+
+# But DO track backend/build
+!backend/build
+
