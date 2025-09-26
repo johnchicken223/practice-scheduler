@@ -24,7 +24,7 @@ app.post("/api/athletes", (req, res) => {
   const newAthlete = { id: Date.now(), name };
   athletes.push(newAthlete);
   unavailability[newAthlete.id] = [];
-  res.json(newAthlete);
+  res.status(201).json(newAthlete); // ✅ 201 Created
 });
 
 app.put("/api/athletes/:id", (req, res) => {
