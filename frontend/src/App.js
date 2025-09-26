@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "./index.css";
 
-const API = "http://localhost:5000/api";
+const API = "https://practice-scheduler.onrender.com/api";
 const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 const SLOT_MINUTES = 30;
 
