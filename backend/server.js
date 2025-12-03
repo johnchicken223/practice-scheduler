@@ -1,5 +1,4 @@
-console.log("DATABASE_URL from Render:", process.env.DATABASE_URL);
-
+console.log("DATABASE_URL:", JSON.stringify(process.env.DATABASE_URL));
 
 // backend/server.js
 import express from "express";
@@ -20,7 +19,6 @@ const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
 });
-
 
 // --- CONSTANTS ---
 const SLOT_MINUTES = 30;
@@ -59,18 +57,6 @@ async function initDb() {
   console.log("✅ PostgreSQL connected & tables initialized");
 }
 initDb().catch(err => console.error("❌ DB init failed:", err));
-
-// --- HELPERS ---
-function minToLabel(min) {
-  const h = Math.floor(min / 60);
-  const m = min % 60;
-  const ampm = h >= 12 ? "PM" : "AM";
-  const hh = ((h + 11) % 12) + 1;
-  return `${hh}:${m.toString().padStart(2, "0")} ${ampm}`;
-}
-function slotLabel(day, min) {
-  return `${day} ${minToLabel(min)}`;
-}
 
 // --- ATHLETES ---
 app.get("/api/athletes", async (req, res) => {
@@ -122,7 +108,7 @@ app.delete("/api/athletes/:id", async (req, res) => {
   }
 });
 
-// --- UNAVAILABILITIES ---
+// --- UNAVAILABILITY ---
 app.get("/api/athletes/:id/unavailability", async (req, res) => {
   const id = Number(req.params.id);
   try {
@@ -140,6 +126,7 @@ app.get("/api/athletes/:id/unavailability", async (req, res) => {
 app.post("/api/athletes/:id/unavailability", async (req, res) => {
   const id = Number(req.params.id);
   const { day, from_min, to_min } = req.body;
+
   if (!DAYS.includes(day)) return res.status(400).json({ error: "invalid day" });
   if (typeof from_min !== "number" || typeof to_min !== "number")
     return res.status(400).json({ error: "from_min and to_min required" });
@@ -154,12 +141,12 @@ app.post("/api/athletes/:id/unavailability", async (req, res) => {
     for (let m = from_min; m < to_min; m += SLOT_MINUTES) {
       values.push(`(${id}, '${day}', ${m})`);
     }
-    if (values.length)
+
+    if (values.length) {
       await pool.query(
-        `INSERT INTO unavailabilities (athlete_id, day, slot_min) VALUES ${values.join(
-          ","
-        )} ON CONFLICT DO NOTHING`
+        `INSERT INTO unavailabilities (athlete_id, day, slot_min) VALUES ${values.join(",")} ON CONFLICT DO NOTHING`
       );
+    }
 
     res.status(201).json({ message: "saved" });
   } catch (err) {
@@ -168,11 +155,20 @@ app.post("/api/athletes/:id/unavailability", async (req, res) => {
   }
 });
 
-// --- COACH LOGIN ---
-app.post("/api/coach-login", (req, res) => {
-  const { code } = req.body;
-  if (code === COACH_CODE) res.json({ success: true });
-  else res.status(403).json({ error: "invalid code" });
+app.delete("/api/athletes/:athleteId/unavailability/:entryId", async (req, res) => {
+  const athleteId = Number(req.params.athleteId);
+  const entryId = Number(req.params.entryId);
+
+  try {
+    await pool.query("DELETE FROM unavailabilities WHERE id=$1 AND athlete_id=$2", [
+      entryId,
+      athleteId
+    ]);
+    res.status(204).end();
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error deleting slot" });
+  }
 });
 
 // --- OPTIMIZE ---
@@ -184,7 +180,8 @@ app.post("/api/optimize", async (req, res) => {
   try {
     const totalAthletesResult = await pool.query("SELECT COUNT(*) AS cnt FROM athletes");
     const totalAthletes = parseInt(totalAthletesResult.rows[0].cnt);
-    if (totalAthletes === 0) return res.status(400).json({ error: "no athletes registered" });
+    if (totalAthletes === 0)
+      return res.status(400).json({ error: "no athletes registered" });
 
     const placeholders = days.map((_, i) => `$${i + 1}`).join(",");
     const sql = `
@@ -212,10 +209,19 @@ app.post("/api/optimize", async (req, res) => {
     const flat = Object.values(slotMap).map(s => {
       const available = totalAthletes - s.unavailable;
       const percentage = Math.round((available / totalAthletes) * 10000) / 100;
-      return { day: s.day, slot_min: s.slot_min, label: slotLabel(s.day, s.slot_min), available_count: available, percentage };
+      return {
+        day: s.day,
+        slot_min: s.slot_min,
+        label: `${s.day} ${s.slot_min}`,
+        available_count: available,
+        percentage
+      };
     });
 
-    const results_by_percent = flat.sort((a, b) => b.percentage - a.percentage || a.slot_min - b.slot_min);
+    const results_by_percent = flat.sort(
+      (a, b) => b.percentage - a.percentage || a.slot_min - b.slot_min
+    );
+
     const results_by_day = {};
     for (const d of DAYS) results_by_day[d] = flat.filter(s => s.day === d);
 
@@ -232,4 +238,6 @@ app.get("*", (req, res) => {
 });
 
 // --- START SERVER ---
-app.listen(PORT, "0.0.0.0", () => console.log(`✅ Server running on port ${PORT}`));
+app.listen(PORT, "0.0.0.0", () =>
+  console.log(`✅ Server running on port ${PORT}`)
+);
