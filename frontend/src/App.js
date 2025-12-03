@@ -4,6 +4,13 @@ import axios from "axios";
 import "./index.css";
 
 const API = "https://practice-scheduler-backend.onrender.com/api";
+
+async function fetchAthletes() {
+  const res = await fetch(`${API}/athletes`);
+  const data = await res.json();
+  console.log("Fetched athletes:", data);
+}
+
 const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 const SLOT_MINUTES = 30;
 
