@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "./index.css";
 
-const API = "https://practice-scheduler-1.onrender.com";
+const API = "https://practice-scheduler-1.onrender.com/api";
 
 async function fetchAthletes() {
   const res = await fetch(`${API}/athletes`);

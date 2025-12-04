@@ -15,8 +15,9 @@ const PORT = process.env.PORT || 10000;
 const { Pool } = pg;
 
 // --- DATABASE CONNECTION ---
+const connectionString = process.env.DATABASE_URL ? process.env.DATABASE_URL.trim() : undefined;
 const pool = new pg.Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString,
   ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
 });
 
@@ -27,7 +28,12 @@ const COACH_CODE = "1234";
 
 // --- MIDDLEWARE ---
 app.use(cors({
-  origin: ["http://localhost:3000", "http://127.0.0.1:5173", "https://practice-scheduler.onrender.com"],
+  origin: [
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    "https://practice-scheduler.onrender.com",
+    "https://practice-scheduler-1.onrender.com"   // <-- add this
+  ],
   methods: ["GET", "POST", "PUT", "DELETE"],
 }));
 app.use(express.json());
