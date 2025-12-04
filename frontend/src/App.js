@@ -5,12 +5,6 @@ import "./index.css";
 
 const API = "https://practice-scheduler-1.onrender.com/api";
 
-async function fetchAthletes() {
-  const res = await fetch(`${API}/athletes`);
-  const data = await res.json();
-  console.log("Fetched athletes:", data);
-}
-
 const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 const SLOT_MINUTES = 30;
 
